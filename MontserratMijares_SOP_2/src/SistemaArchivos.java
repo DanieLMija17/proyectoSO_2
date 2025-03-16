@@ -30,7 +30,7 @@ public class SistemaArchivos {
     }
 
     // Método para crear un archivo
-    public boolean crearArchivo(String nombre, int tamaño, Directorio directorio) {
+   public boolean crearArchivo(String nombre, int tamaño, Directorio directorio) {
         if (modo == ModoUsuario.USUARIO) {
             System.out.println("Error: Solo el administrador puede crear archivos.");
             return false;
@@ -84,6 +84,23 @@ public class SistemaArchivos {
         System.out.println("Directorio '" + nombre + "' creado exitosamente.");
         return true;
     }
+    
+    //Metodo de restaurar versiones de un archvio
+    public boolean restaurarVersionArchivo(Archivo archivo, int version) {
+        if (modo == ModoUsuario.USUARIO) {
+            System.out.println("Error: Solo el administrador puede restaurar versiones.");
+            return false;
+        }
+
+        if (archivo.restaurarVersion(version)) {
+            auditoria.registrarOperacion("Restaurar versión " + version + " del archivo: " + archivo.getNombre(), modo.toString());
+            System.out.println("Versión " + version + " del archivo '" + archivo.getNombre() + "' restaurada exitosamente.");
+            return true;
+        } else {
+            System.out.println("Error: No se pudo restaurar la versión " + version + " del archivo '" + archivo.getNombre() + "'.");
+            return false;
+        }
+    }
 
     // Método para eliminar un directorio
     public boolean eliminarDirectorio(Directorio directorio) {
@@ -112,7 +129,7 @@ public class SistemaArchivos {
     }
 
     // Método para asignar bloques a un archivo
-    private int[] asignarBloques(int tamaño) {
+    public int[] asignarBloques(int tamaño) {
         int[] bloquesAsignados = new int[tamaño];
         int bloquesAsignadosCount = 0;
 
