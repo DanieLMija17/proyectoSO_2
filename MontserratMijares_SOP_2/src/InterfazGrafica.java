@@ -31,7 +31,7 @@ public class InterfazGrafica {
         panelPrincipal.add(treeScrollPane, BorderLayout.WEST);
 
         // 2. Panel central: JTable para la tabla de asignación
-        String[] columnas = {"Nombre", "Tamaño", "Bloques Asignados", "Versión"};
+        String[] columnas = {"Nombre", "Tamaño", "Bloques Asignados"};
         Object[][] datos = obtenerDatosTablaAsignacion();
         tablaAsignacion = new JTable(datos, columnas);
         JScrollPane tablaScrollPane = new JScrollPane(tablaAsignacion);
@@ -50,9 +50,6 @@ public class InterfazGrafica {
         JButton btnCrearDirectorio = new JButton("Crear Directorio");
         JButton btnEliminarDirectorio = new JButton("Eliminar Directorio");
         JButton btnCambiarModo = new JButton("Cambiar Modo");
-        JButton btnCrearVersion = new JButton("Crear Nueva Versión");
-        JButton btnRestaurarVersion = new JButton("Restaurar Versión");
-
 
         panelBotones.add(btnCrearArchivo);
         panelBotones.add(btnEliminarArchivo);
@@ -60,8 +57,6 @@ public class InterfazGrafica {
         panelBotones.add(btnEliminarDirectorio);
         panelBotones.add(btnCambiarModo);
         panelPrincipal.add(panelBotones, BorderLayout.NORTH);
-        panelBotones.add(btnCrearVersion);
-        panelBotones.add(btnRestaurarVersion);
 
         // 5. Manejar eventos de los botones
         btnCrearArchivo.addActionListener(new ActionListener() {
@@ -98,69 +93,10 @@ public class InterfazGrafica {
                 cambiarModo();
             }
         });
-        btnCrearVersion.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                crearNuevaVersion();
-            }
-        });
-        
-        btnRestaurarVersion.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                restaurarVersion();
-            }
-        });
-
-        
 
         // Mostrar el marco
         frame.setVisible(true);
     }
-    private void crearNuevaVersion() {
-        String nombre = JOptionPane.showInputDialog("Nombre del archivo para crear una nueva versión:");
-        if (nombre != null && !nombre.isEmpty()) {
-            Archivo archivo = buscarArchivo(nombre, sistema.getRaiz());
-            if (archivo != null) {
-                int[] nuevosBloques = sistema.asignarBloques(archivo.getTamaño());
-                if (nuevosBloques != null) {
-                    archivo.crearNuevaVersion(nuevosBloques);
-                    sistema.getAuditoria().registrarOperacion("Nueva versión creada: " + nombre, sistema.getModo().toString());
-                    actualizarInterfaz();
-                } else {
-                    JOptionPane.showMessageDialog(null, "No hay suficientes bloques libres para crear una nueva versión.");
-                }
-            } else {
-                JOptionPane.showMessageDialog(null, "Archivo no encontrado.");
-            }
-        }
-    }
-    
-    private void restaurarVersion() {
-    String nombre = JOptionPane.showInputDialog("Nombre del archivo para restaurar una versión:");
-    if (nombre != null && !nombre.isEmpty()) {
-        Archivo archivo = buscarArchivo(nombre, sistema.getRaiz());
-        if (archivo != null) {
-            int numVersiones = archivo.getNumVersiones();
-            if (numVersiones > 1) {
-                String[] opciones = new String[numVersiones];
-                for (int i = 0; i < numVersiones; i++) {
-                    opciones[i] = "Versión " + i;
-                }
-                int seleccion = JOptionPane.showOptionDialog(null, "Seleccione la versión a restaurar:", "Restaurar Versión", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
-                if (seleccion >= 0 && seleccion < numVersiones) {
-                    archivo.restaurarVersion(seleccion);
-                    sistema.getAuditoria().registrarOperacion("Versión " + seleccion + " restaurada: " + nombre, sistema.getModo().toString());
-                    actualizarInterfaz();
-                }
-            } else {
-                JOptionPane.showMessageDialog(null, "No hay versiones anteriores para restaurar.");
-            }
-        } else {
-            JOptionPane.showMessageDialog(null, "Archivo no encontrado.");
-        }
-    }
-}
 
     // Método para construir el árbol a partir de la estructura de directorios
     private DefaultMutableTreeNode construirArbol(Directorio directorio) {
@@ -180,8 +116,6 @@ public class InterfazGrafica {
 
         return nodo;
     }
-    
-    
 
     // Método para obtener los datos de la tabla de asignación
     private Object[][] obtenerDatosTablaAsignacion() {
@@ -191,16 +125,10 @@ public class InterfazGrafica {
 
         for (int i = 0; i < numEntradas; i++) {
             TablaAsignacion.EntradaTabla entrada = tabla.getTabla()[i];
-            Archivo archivo = buscarArchivo(entrada.getNombreArchivo(), sistema.getRaiz());
             datos[i][0] = entrada.getNombreArchivo();
             datos[i][1] = entrada.getTamaño();
             datos[i][2] = java.util.Arrays.toString(entrada.getBloquesAsignados());
-            if (archivo != null) {
-            datos[i][3] = "Versión " + archivo.getVersionActual();
-        } else {
-            datos[i][3] = "N/A"; // En caso de no encontrarse
         }
-    }
 
         return datos;
     }
@@ -281,20 +209,13 @@ public class InterfazGrafica {
 
     // Métodos auxiliares para buscar archivos y directorios
     private Archivo buscarArchivo(String nombre, Directorio directorio) {
-    for (int i = 0; i < directorio.getNumArchivos(); i++) {
-        if (directorio.getArchivos()[i].getNombre().equals(nombre)) {
-            return directorio.getArchivos()[i];
+        for (int i = 0; i < directorio.getNumArchivos(); i++) {
+            if (directorio.getArchivos()[i].getNombre().equals(nombre)) {
+                return directorio.getArchivos()[i];
+            }
         }
+        return null;
     }
-    // Buscar recursivamente en subdirectorios
-    for (int i = 0; i < directorio.getNumSubdirectorios(); i++) {
-        Archivo encontrado = buscarArchivo(nombre, directorio.getSubdirectorios()[i]);
-        if (encontrado != null) {
-            return encontrado;
-        }
-    }
-    return null;
-}
 
     private Directorio buscarDirectorio(String nombre, Directorio directorio) {
         for (int i = 0; i < directorio.getNumSubdirectorios(); i++) {
