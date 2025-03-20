@@ -10,12 +10,12 @@
 public class Archivo {
     private String nombre;
     private int tamaño; // Tamaño en bloques
-    private int[] bloquesAsignados; // Bloques asignados en el disco
-
+    private int primerBloque;
+    
     public Archivo(String nombre, int tamaño) {
         this.nombre = nombre;
         this.tamaño = tamaño;
-        this.bloquesAsignados = new int[tamaño];
+        this.primerBloque = -1; 
     }
 
     // Getters y Setters
@@ -31,11 +31,11 @@ public class Archivo {
         return tamaño;
     }
 
-    public int[] getBloquesAsignados() {
-        return bloquesAsignados;
+     public int getPrimerBloque() {
+        return primerBloque;
     }
 
-    public void setBloquesAsignados(int[] bloquesAsignados) {
-        this.bloquesAsignados = bloquesAsignados;
+    public void setPrimerBloque(int primerBloque) {
+        this.primerBloque = primerBloque;
     }
 }

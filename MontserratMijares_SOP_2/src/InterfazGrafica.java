@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class InterfazGrafica {
+
     private SistemaArchivos sistema;
     private JTree tree;
     private JTable tablaAsignacion;
@@ -31,7 +32,7 @@ public class InterfazGrafica {
         panelPrincipal.add(treeScrollPane, BorderLayout.WEST);
 
         // 2. Panel central: JTable para la tabla de asignación
-        String[] columnas = {"Nombre", "Tamaño", "Bloques Asignados"};
+        String[] columnas = {"Nombre", "Bloques Asignados", "Primer Bloque"};
         Object[][] datos = obtenerDatosTablaAsignacion();
         tablaAsignacion = new JTable(datos, columnas);
         JScrollPane tablaScrollPane = new JScrollPane(tablaAsignacion);
@@ -50,12 +51,16 @@ public class InterfazGrafica {
         JButton btnCrearDirectorio = new JButton("Crear Directorio");
         JButton btnEliminarDirectorio = new JButton("Eliminar Directorio");
         JButton btnCambiarModo = new JButton("Cambiar Modo");
+        JButton btnModificarArchivo = new JButton("Modificar Nombre Archivo");
+        JButton btnModificarDirectorio = new JButton("Modificar Nombre Directorio");
 
         panelBotones.add(btnCrearArchivo);
         panelBotones.add(btnEliminarArchivo);
         panelBotones.add(btnCrearDirectorio);
         panelBotones.add(btnEliminarDirectorio);
         panelBotones.add(btnCambiarModo);
+        panelBotones.add(btnModificarArchivo);
+        panelBotones.add(btnModificarDirectorio);
         panelPrincipal.add(panelBotones, BorderLayout.NORTH);
 
         // 5. Manejar eventos de los botones
@@ -94,6 +99,20 @@ public class InterfazGrafica {
             }
         });
 
+        btnModificarArchivo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                modificarNombreArchivo();
+            }
+        });
+
+        btnModificarDirectorio.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                modificarNombreDirectorio();
+            }
+        });
+
         // Mostrar el marco
         frame.setVisible(true);
     }
@@ -125,9 +144,9 @@ public class InterfazGrafica {
 
         for (int i = 0; i < numEntradas; i++) {
             TablaAsignacion.EntradaTabla entrada = tabla.getTabla()[i];
-            datos[i][0] = entrada.getNombreArchivo();
-            datos[i][1] = entrada.getTamaño();
-            datos[i][2] = java.util.Arrays.toString(entrada.getBloquesAsignados());
+            datos[i][0] = entrada.getNombreArchivo(); // Nombre del archivo
+            datos[i][1] = entrada.getTamaño();       // Cantidad de bloques asignados (tamaño)
+            datos[i][2] = entrada.getPrimerBloque(); // Dirección del primer bloque
         }
 
         return datos;
@@ -141,7 +160,8 @@ public class InterfazGrafica {
 
         // Actualizar la tabla de asignación
         Object[][] datos = obtenerDatosTablaAsignacion();
-        tablaAsignacion.setModel(new javax.swing.table.DefaultTableModel(datos, new String[]{"Nombre", "Tamaño", "Bloques Asignados"}));
+        String[] columnas = {"Nombre", "Bloques Asignados", "Primer Bloque"}; // Nombres de columnas correctos
+        tablaAsignacion.setModel(new javax.swing.table.DefaultTableModel(datos, columnas));
 
         // Actualizar el registro de auditoría
         StringBuilder log = new StringBuilder();
@@ -157,8 +177,15 @@ public class InterfazGrafica {
         String nombre = JOptionPane.showInputDialog("Nombre del archivo:");
         if (nombre != null && !nombre.isEmpty()) {
             int tamaño = Integer.parseInt(JOptionPane.showInputDialog("Tamaño del archivo (en bloques):"));
-            sistema.crearArchivo(nombre, tamaño, sistema.getRaiz());
-            actualizarInterfaz();
+            String rutaDirectorio = JOptionPane.showInputDialog("Ruta del directorio (dejar vacío para raíz):");
+            Directorio directorioDestino = buscarDirectorioPorRuta(rutaDirectorio, sistema.getRaiz());
+
+            if (directorioDestino != null) {
+                sistema.crearArchivo(nombre, tamaño, directorioDestino);
+                actualizarInterfaz();
+            } else {
+                JOptionPane.showMessageDialog(null, "Directorio no encontrado.");
+            }
         }
     }
 
@@ -178,8 +205,15 @@ public class InterfazGrafica {
     private void crearDirectorio() {
         String nombre = JOptionPane.showInputDialog("Nombre del directorio:");
         if (nombre != null && !nombre.isEmpty()) {
-            sistema.crearDirectorio(nombre, sistema.getRaiz());
-            actualizarInterfaz();
+            String rutaDirectorio = JOptionPane.showInputDialog("Ruta del directorio (dejar vacío para raíz):");
+            Directorio directorioDestino = buscarDirectorioPorRuta(rutaDirectorio, sistema.getRaiz());
+
+            if (directorioDestino != null) {
+                sistema.crearDirectorio(nombre, directorioDestino);
+                actualizarInterfaz();
+            } else {
+                JOptionPane.showMessageDialog(null, "Directorio no encontrado.");
+            }
         }
     }
 
@@ -194,6 +228,31 @@ public class InterfazGrafica {
                 JOptionPane.showMessageDialog(null, "Directorio no encontrado.");
             }
         }
+    }
+
+    private Directorio buscarDirectorioPorRuta(String ruta, Directorio directorioActual) {
+        if (ruta == null || ruta.isEmpty()) {
+            return directorioActual; // Si no se especifica ruta, usar el directorio actual
+        }
+
+        String[] partes = ruta.split("/");
+        for (String parte : partes) {
+            if (parte.isEmpty()) {
+                continue; // Ignorar partes vacías (por ejemplo, si la ruta empieza con "/")
+            }
+            boolean encontrado = false;
+            for (int i = 0; i < directorioActual.getNumSubdirectorios(); i++) {
+                if (directorioActual.getSubdirectorios()[i].getNombre().equals(parte)) {
+                    directorioActual = directorioActual.getSubdirectorios()[i];
+                    encontrado = true;
+                    break;
+                }
+            }
+            if (!encontrado) {
+                return null; // Directorio no encontrado
+            }
+        }
+        return directorioActual;
     }
 
     private void cambiarModo() {
@@ -214,15 +273,59 @@ public class InterfazGrafica {
                 return directorio.getArchivos()[i];
             }
         }
+        for (int i = 0; i < directorio.getNumSubdirectorios(); i++) {
+            Archivo archivo = buscarArchivo(nombre, directorio.getSubdirectorios()[i]);
+            if (archivo != null) {
+                return archivo;
+            }
+        }
         return null;
     }
 
     private Directorio buscarDirectorio(String nombre, Directorio directorio) {
+        if (directorio.getNombre().equals(nombre)) {
+            return directorio;
+        }
         for (int i = 0; i < directorio.getNumSubdirectorios(); i++) {
-            if (directorio.getSubdirectorios()[i].getNombre().equals(nombre)) {
-                return directorio.getSubdirectorios()[i];
+            Directorio subdirectorio = buscarDirectorio(nombre, directorio.getSubdirectorios()[i]);
+            if (subdirectorio != null) {
+                return subdirectorio;
             }
         }
         return null;
+    }
+
+    private void modificarNombreArchivo() {
+        String nombreActual = JOptionPane.showInputDialog("Nombre actual del archivo:");
+        if (nombreActual != null && !nombreActual.isEmpty()) {
+            String nuevoNombre = JOptionPane.showInputDialog("Nuevo nombre del archivo:");
+            if (nuevoNombre != null && !nuevoNombre.isEmpty()) {
+                Archivo archivo = buscarArchivo(nombreActual, sistema.getRaiz());
+                if (archivo != null) {
+                    archivo.setNombre(nuevoNombre);
+                    sistema.getAuditoria().registrarOperacion("Modificar nombre de archivo: " + nombreActual + " -> " + nuevoNombre, sistema.getModo().toString());
+                    actualizarInterfaz();
+                } else {
+                    JOptionPane.showMessageDialog(null, "Archivo no encontrado.");
+                }
+            }
+        }
+    }
+
+    private void modificarNombreDirectorio() {
+        String nombreActual = JOptionPane.showInputDialog("Nombre actual del directorio:");
+        if (nombreActual != null && !nombreActual.isEmpty()) {
+            String nuevoNombre = JOptionPane.showInputDialog("Nuevo nombre del directorio:");
+            if (nuevoNombre != null && !nuevoNombre.isEmpty()) {
+                Directorio directorio = buscarDirectorio(nombreActual, sistema.getRaiz());
+                if (directorio != null) {
+                    directorio.setNombre(nuevoNombre);
+                    sistema.getAuditoria().registrarOperacion("Modificar nombre de directorio: " + nombreActual + " -> " + nuevoNombre, sistema.getModo().toString());
+                    actualizarInterfaz();
+                } else {
+                    JOptionPane.showMessageDialog(null, "Directorio no encontrado.");
+                }
+            }
+        }
     }
 }

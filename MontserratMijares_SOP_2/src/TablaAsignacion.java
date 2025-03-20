@@ -23,7 +23,7 @@ public class TablaAsignacion {
     // Método para agregar una entrada a la tabla
     public void agregarEntrada(Archivo archivo) {
         if (numEntradas < MAX_ENTRADAS) {
-            EntradaTabla entrada = new EntradaTabla(archivo.getNombre(), archivo.getTamaño(), archivo.getBloquesAsignados());
+            EntradaTabla entrada = new EntradaTabla(archivo.getNombre(), archivo.getTamaño(), archivo.getPrimerBloque());
             tabla[numEntradas] = entrada;
             numEntradas++;
         } else {
@@ -60,12 +60,12 @@ public class TablaAsignacion {
     public static class EntradaTabla {
         private String nombreArchivo;
         private int tamaño;
-        private int[] bloquesAsignados;
+        private int primerBloque;
 
-        public EntradaTabla(String nombreArchivo, int tamaño, int[] bloquesAsignados) {
+        public EntradaTabla(String nombreArchivo, int tamaño, int primerBloque) {
             this.nombreArchivo = nombreArchivo;
             this.tamaño = tamaño;
-            this.bloquesAsignados = bloquesAsignados;
+            this.primerBloque = primerBloque;
         }
 
         // Getters
@@ -77,8 +77,8 @@ public class TablaAsignacion {
             return tamaño;
         }
 
-        public int[] getBloquesAsignados() {
-            return bloquesAsignados;
+        public int getPrimerBloque() {
+            return primerBloque;
         }
     }
 }
