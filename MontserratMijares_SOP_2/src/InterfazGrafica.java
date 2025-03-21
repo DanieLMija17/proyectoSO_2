@@ -32,7 +32,7 @@ public class InterfazGrafica {
         panelPrincipal.add(treeScrollPane, BorderLayout.WEST);
 
         // 2. Panel central: JTable para la tabla de asignación
-        String[] columnas = {"Nombre", "Bloques Asignados", "Primer Bloque"};
+        String[] columnas = {"Nombre", "Bloques Asignados", "Primer Bloque", "Versiones"};
         Object[][] datos = obtenerDatosTablaAsignacion();
         tablaAsignacion = new JTable(datos, columnas);
         JScrollPane tablaScrollPane = new JScrollPane(tablaAsignacion);
@@ -53,6 +53,10 @@ public class InterfazGrafica {
         JButton btnCambiarModo = new JButton("Cambiar Modo");
         JButton btnModificarArchivo = new JButton("Modificar Nombre Archivo");
         JButton btnModificarDirectorio = new JButton("Modificar Nombre Directorio");
+        JButton btnCrearVersion = new JButton("Crear Versión");
+        JButton btnRestaurarVersion = new JButton("Restaurar Versión");
+        JButton btnGuardarEstado = new JButton("Guardar Estado");
+        JButton btnCargarEstado = new JButton("Cargar Estado");
 
         panelBotones.add(btnCrearArchivo);
         panelBotones.add(btnEliminarArchivo);
@@ -62,6 +66,10 @@ public class InterfazGrafica {
         panelBotones.add(btnModificarArchivo);
         panelBotones.add(btnModificarDirectorio);
         panelPrincipal.add(panelBotones, BorderLayout.NORTH);
+        panelBotones.add(btnCrearVersion);
+        panelBotones.add(btnRestaurarVersion);
+        panelBotones.add(btnGuardarEstado);
+        panelBotones.add(btnCargarEstado);
 
         // 5. Manejar eventos de los botones
         btnCrearArchivo.addActionListener(new ActionListener() {
@@ -112,10 +120,47 @@ public class InterfazGrafica {
                 modificarNombreDirectorio();
             }
         });
+        
+        btnCrearVersion.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                crearVersion();
+            }
+        });
+        
+        btnGuardarEstado.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String rutaArchivo = JOptionPane.showInputDialog("Ruta del archivo para guardar el estado:");
+                if (rutaArchivo != null && !rutaArchivo.isEmpty()) {
+                    sistema.guardarEstadoEnArchivo(rutaArchivo);
+                }
+            }
+        });
+
+        btnCargarEstado.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String rutaArchivo = JOptionPane.showInputDialog("Ruta del archivo para cargar el estado:");
+                if (rutaArchivo != null && !rutaArchivo.isEmpty()) {
+                    sistema.cargarEstadoDesdeArchivo(rutaArchivo);
+                    actualizarInterfaz();
+                }
+            }
+        });
+
+        btnRestaurarVersion.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                restaurarVersion();
+            }
+        });
 
         // Mostrar el marco
         frame.setVisible(true);
     }
+    
+    
 
     // Método para construir el árbol a partir de la estructura de directorios
     private DefaultMutableTreeNode construirArbol(Directorio directorio) {
@@ -137,30 +182,32 @@ public class InterfazGrafica {
     }
 
     // Método para obtener los datos de la tabla de asignación
-    private Object[][] obtenerDatosTablaAsignacion() {
+   private Object[][] obtenerDatosTablaAsignacion() {
         TablaAsignacion tabla = sistema.getTablaAsignacion();
         int numEntradas = tabla.getNumEntradas();
-        Object[][] datos = new Object[numEntradas][3];
+        Object[][] datos = new Object[numEntradas][4]; // 4 columnas: Nombre, Bloques Asignados, Primer Bloque, Versiones
 
         for (int i = 0; i < numEntradas; i++) {
             TablaAsignacion.EntradaTabla entrada = tabla.getTabla()[i];
+            Archivo archivo = sistema.getArchivoPorNombre(entrada.getNombreArchivo()); // Obtener el archivo
             datos[i][0] = entrada.getNombreArchivo(); // Nombre del archivo
             datos[i][1] = entrada.getTamaño();       // Cantidad de bloques asignados (tamaño)
             datos[i][2] = entrada.getPrimerBloque(); // Dirección del primer bloque
+            datos[i][3] = archivo.getNumVersiones(); // Número de versiones
         }
 
         return datos;
     }
 
     // Método para actualizar la interfaz
-    private void actualizarInterfaz() {
+   private void actualizarInterfaz() {
         // Actualizar el árbol
         DefaultMutableTreeNode raizTree = construirArbol(sistema.getRaiz());
         tree.setModel(new javax.swing.tree.DefaultTreeModel(raizTree));
 
         // Actualizar la tabla de asignación
         Object[][] datos = obtenerDatosTablaAsignacion();
-        String[] columnas = {"Nombre", "Bloques Asignados", "Primer Bloque"}; // Nombres de columnas correctos
+        String[] columnas = {"Nombre", "Bloques Asignados", "Primer Bloque", "Versiones"};
         tablaAsignacion.setModel(new javax.swing.table.DefaultTableModel(datos, columnas));
 
         // Actualizar el registro de auditoría
@@ -293,6 +340,37 @@ public class InterfazGrafica {
             }
         }
         return null;
+    }
+    
+    private void crearVersion() {
+        String nombreArchivo = JOptionPane.showInputDialog("Nombre del archivo:");
+        if (nombreArchivo != null && !nombreArchivo.isEmpty()) {
+            Archivo archivo = buscarArchivo(nombreArchivo, sistema.getRaiz());
+            if (archivo != null) {
+                sistema.crearVersion(archivo);
+                actualizarInterfaz();
+            } else {
+                JOptionPane.showMessageDialog(null, "Archivo no encontrado.");
+            }
+        }
+    }
+
+    private void restaurarVersion() {
+        String nombreArchivo = JOptionPane.showInputDialog("Nombre del archivo:");
+        if (nombreArchivo != null && !nombreArchivo.isEmpty()) {
+            Archivo archivo = buscarArchivo(nombreArchivo, sistema.getRaiz());
+            if (archivo != null) {
+                int indiceVersion = Integer.parseInt(JOptionPane.showInputDialog("Índice de la versión a restaurar:"));
+                if (indiceVersion >= 0 && indiceVersion < archivo.getNumVersiones()) {
+                    sistema.restaurarVersion(archivo, indiceVersion);
+                    actualizarInterfaz();
+                } else {
+                    JOptionPane.showMessageDialog(null, "Índice de versión no válido.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "Archivo no encontrado.");
+            }
+        }
     }
 
     private void modificarNombreArchivo() {
